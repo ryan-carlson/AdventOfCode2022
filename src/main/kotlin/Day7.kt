@@ -1,7 +1,4 @@
 import java.io.File
-import java.util.regex.Pattern
-
-private val WHITESPACE = Pattern.compile("\\s+")
 
 class NamedFile(private val name: String, val size: Int){
     override fun toString(): String {
@@ -51,8 +48,8 @@ fun main() {
     val root = Directory()
     var workingDirectory = root
     loadResource("day-7-input")?.path?.let {
-        File(it).forEachLine {
-        val inputs = WHITESPACE.split(it.trim())
+        File(it).forEachLine {line ->
+        val inputs = splitOnWhitespace(line)
         when(inputs[0]) {
             "$" -> {
                 when (inputs[1]) {
