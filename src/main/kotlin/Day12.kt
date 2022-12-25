@@ -6,6 +6,10 @@ fun climbable(current: Char, target: Char): Boolean {
     return  getHeight(current)+1 >= getHeight(target)
 }
 
+fun climbable(current: CharVertex, target: CharVertex): Boolean {
+    return climbable(current.data, target.data)
+}
+
 private fun getHeight(current: Char): Char {
    return when (current) {
         'S' -> 'a'
@@ -14,11 +18,8 @@ private fun getHeight(current: Char): Char {
     }
 }
 
-fun climbable(current: CharVertex, target: CharVertex): Boolean {
-    return climbable(current.data, target.data)
-}
-
 typealias CharVertex = Vertex<Int, Char>
+typealias TopologyGraph = Graph<Int, Char>
 
 fun loadGraph(): Pair<TopologyGraph, Map<Char, List<CharVertex>>> {
     val adjacencyListGraph = Graph<Int, Char>()
@@ -56,37 +57,6 @@ fun loadGraph(): Pair<TopologyGraph, Map<Char, List<CharVertex>>> {
     }
     return Pair(adjacencyListGraph, vertices)
 }
-
-class Path(val vertices: List<CharVertex>) {
-    fun add(element: CharVertex): Path {
-        return Path(vertices + element)
-    }
-}
-
-//fun findShortestPath(graph: TopologyGraph, start: CharVertex, end: CharVertex): Path? {
-//    return step(graph, mutableListOf(Path(listOf(start))), end, mutableSetOf(start))
-//}
-
-typealias TopologyGraph = Graph<Int, Char>
-
-//tailrec fun step(graph: TopologyGraph, paths: MutableList<Path>, end: CharVertex, visited: MutableSet<CharVertex>): Path? {
-//    val newPaths = mutableListOf<Path>()
-//    var destinationPath: Path? = null
-//    for (path in paths) {
-//        for (edge in graph.getEdges(path.vertices.last())) {
-//            val destination = edge.destination
-//            if (destination == end) {
-//                destinationPath = path.add(destination)
-//            }
-//            if (!visited.contains(destination)) {
-//                newPaths.add(path.add(destination))
-//                visited.add(destination)
-//            }
-//        }
-//    }
-//
-//    return if (destinationPath != null || newPaths.isEmpty()) destinationPath else step(graph, newPaths, end, visited)
-//}
 
 fun main() {
     val (graph, vertices) = loadGraph()

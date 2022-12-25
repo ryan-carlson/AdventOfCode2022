@@ -17,7 +17,7 @@ class Graph<K, V> {
         return step(mutableListOf(Path(listOf(start))), end, mutableSetOf(start))
     }
 
-    tailrec fun step(paths: MutableList<Path<K, V>>, end: Vertex<K, V>, visited: MutableSet<Vertex<K, V>>): Path<K, V>? {
+    private tailrec fun step(paths: MutableList<Path<K, V>>, end: Vertex<K, V>, visited: MutableSet<Vertex<K, V>>): Path<K, V>? {
         val newPaths = mutableListOf<Path<K, V>>()
         var destinationPath: Path<K, V>? = null
         for (path in paths) {
@@ -63,7 +63,7 @@ class Graph<K, V> {
         adjacencyMap[source]?.add(edge)
     }
 
-    fun getEdges(vertex: Vertex<K, V>): List<Edge<K, V>> {
+    private fun getEdges(vertex: Vertex<K, V>): List<Edge<K, V>> {
         return adjacencyMap.getOrElse(vertex) { listOf() }
     }
 
