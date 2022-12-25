@@ -1,4 +1,4 @@
-import structures.AdjacencyList
+import structures.Graph
 import structures.Vertex
 import java.io.File
 
@@ -18,10 +18,10 @@ fun climbable(current: CharVertex, target: CharVertex): Boolean {
     return climbable(current.data, target.data)
 }
 
-typealias CharVertex = Vertex<Char>
+typealias CharVertex = Vertex<Int, Char>
 
-fun loadGraph(): Pair<AdjacencyList<Char>, Map<Char, List<CharVertex>>> {
-    val adjacencyListGraph = AdjacencyList<Char>()
+fun loadGraph(): Pair<TopologyGraph, Map<Char, List<CharVertex>>> {
+    val adjacencyListGraph = Graph<Int, Char>()
     val vertices: MutableMap<Char, List<CharVertex>> = mutableMapOf()
     loadResource("day-12-input")?.path?.let {
         File(it).readLines().fold(mutableListOf()) { acc: MutableList<MutableList<CharVertex>>, item ->
@@ -29,7 +29,7 @@ fun loadGraph(): Pair<AdjacencyList<Char>, Map<Char, List<CharVertex>>> {
             val row = acc.last()
             val y = acc.size-1
             for ((x, value) in item.withIndex()) {
-                val vertex = adjacencyListGraph.createVertex(value)
+                val vertex = adjacencyListGraph.createVertex(adjacencyListGraph.getVerticesCount(), value)
                 vertices[value] = if (vertices.contains(value)) vertices[value]!!.plus(vertex) else listOf(vertex)
                 acc.last().add(vertex)
                 if (x >= 1) {
@@ -63,11 +63,13 @@ class Path(val vertices: List<CharVertex>) {
     }
 }
 
-fun findShortestPath(graph: AdjacencyList<Char>, start: CharVertex, end: CharVertex, max: Int): Path? {
+fun findShortestPath(graph: TopologyGraph, start: CharVertex, end: CharVertex, max: Int): Path? {
     return step(graph, mutableListOf(Path(listOf(start))), end, mutableSetOf(start), max)
 }
 
-tailrec fun step(graph: AdjacencyList<Char>, paths: MutableList<Path>, end: CharVertex, visited: MutableSet<CharVertex>, max: Int): Path? {
+typealias TopologyGraph = Graph<Int, Char>
+
+tailrec fun step(graph: TopologyGraph, paths: MutableList<Path>, end: CharVertex, visited: MutableSet<CharVertex>, max: Int): Path? {
     val newPaths = mutableListOf<Path>()
     var destinationPath: Path? = null
     for (path in paths) {
