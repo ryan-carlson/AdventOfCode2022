@@ -1,3 +1,4 @@
+import utilities.loadResource
 import java.io.File
 
 class Forest(private val forest: Array<IntArray>) {
@@ -130,7 +131,7 @@ class Forest(private val forest: Array<IntArray>) {
 
 fun loadForest(): Forest {
     var forest: Array<IntArray> = arrayOf()
-    loadResource("day-8-input")?.path?.let {
+    loadResource("day-8-input").path.let {
         File(it).forEachLine { line ->
             val trees = line.map { c -> c.digitToInt() }.toIntArray()
             forest += trees

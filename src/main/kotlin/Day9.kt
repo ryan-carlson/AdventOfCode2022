@@ -1,3 +1,4 @@
+import utilities.loadResource
 import java.io.File
 import kotlin.math.abs
 
@@ -96,7 +97,7 @@ fun main() {
     val gridPart1 = Grid(2)
     val gridPart2 = Grid(10)
 
-    loadResource("day-9-input")?.path?.let {
+    loadResource("day-9-input").path.let {
         File(it).forEachLine { line ->
             val inputs = splitOnWhitespace(line)
             val (moveX, moveY) = directions[inputs[0]]!!

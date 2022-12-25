@@ -1,3 +1,4 @@
+import utilities.loadResource
 import java.io.File
 import kotlin.math.abs
 
@@ -8,7 +9,7 @@ fun main() {
     var signalStrength = 0
     val crt = mutableListOf<Char>()
 
-    loadResource("day-10-input")?.path?.let {
+    loadResource("day-10-input").path.let {
         File(it).forEachLine { line ->
             val inputs = splitOnWhitespace(line)
             val cyclesRequired: Int

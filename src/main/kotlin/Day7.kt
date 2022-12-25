@@ -1,3 +1,4 @@
+import utilities.loadResource
 import java.io.File
 
 class NamedFile(private val name: String, val size: Int){
@@ -47,7 +48,7 @@ class Directory{
 fun main() {
     val root = Directory()
     var workingDirectory = root
-    loadResource("day-7-input")?.path?.let {
+    loadResource("day-7-input").path.let {
         File(it).forEachLine {line ->
         val inputs = splitOnWhitespace(line)
         when(inputs[0]) {

@@ -1,5 +1,6 @@
 import structures.Graph
 import structures.Vertex
+import utilities.loadResource
 import java.io.File
 
 fun climbable(current: Char, target: Char): Boolean {
@@ -24,7 +25,7 @@ typealias TopologyGraph = Graph<Int, Char>
 fun loadGraph(): Pair<TopologyGraph, Map<Char, List<CharVertex>>> {
     val adjacencyListGraph = Graph<Int, Char>()
     val vertices: MutableMap<Char, List<CharVertex>> = mutableMapOf()
-    loadResource("day-12-input")?.path?.let {
+    loadResource("day-12-input").path.let {
         File(it).readLines().fold(mutableListOf()) { acc: MutableList<MutableList<CharVertex>>, item ->
             acc.add(mutableListOf())
             val row = acc.last()

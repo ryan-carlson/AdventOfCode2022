@@ -1,3 +1,4 @@
+import utilities.loadResource
 import java.io.File
 
 class Operation(operationInput: String) {
@@ -61,7 +62,7 @@ class MonkeyClan(val monkeys:List<Monkey>, val manageWorry: (Long)-> Long, val r
         }
     }
 
-    fun output() {
+    private fun output() {
         for ((index, monkey) in monkeys.withIndex()) {
             println("Monkey $index inspected items ${monkey.inspections} times")
         }
@@ -112,7 +113,7 @@ class Monkey(
 }
 
 fun load(): List<Monkey> {
-    return loadResource("day-11-input")?.path?.let {
+    return loadResource("day-11-input").path.let {
         File(it).readLines().fold (mutableListOf(mutableListOf())) { acc: MutableList<MutableList<String>>, item ->
             if(item.isBlank()) {
                 acc.add(mutableListOf())
@@ -122,7 +123,7 @@ fun load(): List<Monkey> {
             acc
         }.map {item: MutableList<String> ->
             Monkey(
-                items=item[1].split(":")[1].split(",").map { item -> item.trim().toLong() }.toMutableList(),
+                items=item[1].split(":")[1].split(",").map { it -> it.trim().toLong() }.toMutableList(),
                 operation=Operation(item[2].split(":")[1]),
                 brain=MonkeyBrain(
                     divisibleValue=splitOnWhitespace(item[3]).last().toInt(),
@@ -131,7 +132,7 @@ fun load(): List<Monkey> {
                 )
             )
         }
-    }!!
+    }
 }
 
 fun main() {
