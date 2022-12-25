@@ -1,8 +1,7 @@
 import structures.Graph
 import structures.Path
 import structures.Vertex
-import utilities.loadResource
-import java.io.File
+import utilities.readLines
 
 data class Valve(val name: String, val pressure: Int, val adjacent: List<String>)
 
@@ -16,70 +15,62 @@ class PressureRelease(private val timeLimit: Int) {
     }
 }
 
-//data class ValvePath(val path: List<ValveVertex>, val minutes: Int) {
-//    private fun move(target: ValveVertex): ValvePath {
-//        return this.copy(
-//            minutes = minutes+1,
-//            path = path + target,
-//        )
-//    }
-//    fun traverse(shortest: Path<String, Valve>): ValvePath {
-//        var valvePath = this
-//        return this.copy(
-//            minutes = minutes+shortest.vertices.size,
-//            path = path + target,
-//        )
-//        for (i in 1 until shortest.vertices.size) {
-//            val currentValve = shortest.vertices[i]
-//            valvePath = valvePath.move(currentValve)
-//            if (currentValve == shortest.vertices.last()) {
-//                valvePath = valvePath.release()
-//            }
-//        }
-//        return valvePath
-//    }
-//}
+data class ValvePath(val path: List<ValveVertex>, val minutes: Int, val pressureRelease: Map<Int, Int>) {
+    fun last(): ValveVertex {
+        return path.last()
+    }
 
-data class PathTracker(val path: List<ValveVertex>, val path2: List<ValveVertex>, val minutes: Int, val pressureRelease: Map<Int, Int>, val released: Set<ValveVertex>) {
-    fun released(): Set<String> {
-        return released.map { it.id }.toSet()
-    }
-//    fun minutes(): Int {
-//        return minutes
-//    }
-    private fun move(target: ValveVertex): PathTracker {
-        return this.copy(
-            minutes = minutes+1,
-            path = path + target,
-        )
-    }
-    private fun release(): PathTracker {
-        val last = path.last()
-        val updatedMinutes = minutes+1
-        return this.copy(
+    fun traverse(value: Path<String, Valve>): ValvePath {
+        val pathToTraverse = value.vertices
+        val updatedMinutes = minutes + pathToTraverse.size
+        return ValvePath(
+            path = path + pathToTraverse.subList(1,pathToTraverse.size),
             minutes = updatedMinutes,
-            pressureRelease = pressureRelease+mapOf(updatedMinutes to last.data.pressure),
-            released = released + last,
+            pressureRelease = pressureRelease + mapOf(updatedMinutes to pathToTraverse.last().data.pressure),
         )
-    }
-//    fun last(): ValveVertex {
-//        return path.last()
-//    }
-    fun traverse(shortest: Path<String, Valve>): PathTracker {
-        var valvePath = this
-        for (i in 1 until shortest.vertices.size) {
-            val currentValve = shortest.vertices[i]
-            valvePath = valvePath.move(currentValve)
-            if (currentValve == shortest.vertices.last()) {
-                valvePath = valvePath.release()
-            }
-        }
-        return valvePath
     }
 }
 
-fun newValvePath(start: ValveVertex): PathTracker {
-    return PathTracker(listOf(start), listOf(start), 0, mapOf(), setOf())
+data class PathTracker(val paths: Pair<ValvePath, ValvePath?>, val released: Set<ValveVertex>, val pressureRelease: PressureRelease) {
+    fun released(): Set<String> {
+        return released.map { it.id }.toSet()
+    }
+    fun release(): PathTracker {
+        val last = paths.first.last()
+        if (paths.second != null) {
+            val secondPath = paths.second!!
+            val last2 = secondPath.last()
+            return this.copy(
+                released = released + last + last2,
+            )
+        }
+        return this.copy(
+            released = released + last,
+        )
+    }
+
+    fun pressure(): Int {
+        if (paths.second != null) {
+            return pressureRelease.pressure(paths.first.pressureRelease) + pressureRelease.pressure(paths.second!!.pressureRelease)
+        }
+        return pressureRelease.pressure(paths.first.pressureRelease)
+    }
+}
+
+fun newValvePaths(start: ValveVertex, elephant: Boolean): Pair<ValvePath, ValvePath?> {
+    return if (elephant) {
+        Pair(newValvePath(start), newValvePath(start))
+    } else {
+        Pair(newValvePath(start), null)
+    }
+}
+
+fun newValvePath(start: ValveVertex): ValvePath {
+    return ValvePath(listOf(start), 0, mapOf())
+}
+
+fun newPathTracker(start: ValveVertex, elephant: Boolean, pressureRelease: PressureRelease): PathTracker {
+    return PathTracker(newValvePaths(start, elephant), setOf(), pressureRelease)
 }
 
 typealias ValveVertex = Vertex<String, Valve>
@@ -113,8 +104,9 @@ fun initGraph(valves: Map<String, Valve>): Graph<String, Valve> {
     return caves
 }
 
-class PressureLocator(lines: List<String>, private val timeLimit: Int) {
+class PressureLocator(lines: List<String>, private val elephant: Boolean) {
 
+    private val timeLimit = if (elephant) 26 else 30
     private val pressureRelease = PressureRelease(timeLimit)
     private val valves = initValves(lines)
     private val caves = initGraph(valves)
@@ -123,32 +115,63 @@ class PressureLocator(lines: List<String>, private val timeLimit: Int) {
     fun findOptimalPathPressure(): Int {
         val paths = traverseNextValve(
             caves,
-            listOf(newValvePath(caves.getVertex("AA")!!)),
+            listOf(newPathTracker(caves.getVertex("AA")!!, elephant, pressureRelease)),
         )
-        val path = paths.reduce{acc, valvePath ->
-            if (pressureRelease.pressure(valvePath.pressureRelease) > pressureRelease.pressure(acc.pressureRelease))
-                valvePath
+        val path = paths.reduce{acc, pathTracker ->
+            if (pathTracker.pressure() > acc.pressure())
+                pathTracker
             else
                 acc
         }
-        return pressureRelease.pressure(path.pressureRelease)
+        return path.pressure()
     }
 
-    private fun extend(pathTracker: PathTracker): List<PathTracker> {
-        val extendedPaths = mutableListOf<PathTracker>()
-        val valvesWithPressure = pressuredValves.subtract(pathTracker.released())
-        for (valve in valvesWithPressure) {
-            val shortest = caves.findShortestPath(pathTracker.path.last(), this.caves.getVertex(valve)!!)
-            if (shortest != null) {
-                val extended = pathTracker.traverse(shortest)
-                if (extended.minutes <= timeLimit) {
-                    extendedPaths.add(extended)
+    private fun extend(path: Pair<ValvePath, ValvePath?>, valve: String, remainingValves: Set<String>): List<Pair<ValvePath, ValvePath?>> {
+        val paths = mutableListOf<Pair<ValvePath, ValvePath?>>()
+        val shortest = caves.findShortestPath(path.first.last(), this.caves.getVertex(valve)!!)
+        if (shortest != null) {
+            val extended = path.first.traverse(shortest)
+            if (extended.minutes <= timeLimit) {
+                var secondPathAdded = false
+                if (path.second != null) {
+                    for (remainingValve in remainingValves.subtract(setOf(valve))) {
+                        val secondPath = path.second!!
+                        val shortestSecondPath = caves.findShortestPath(secondPath.last(), this.caves.getVertex(remainingValve)!!)
+                        if (shortestSecondPath != null) {
+                            val extendedSecondPath = secondPath.traverse(shortestSecondPath)
+                            if (extendedSecondPath.minutes <= timeLimit) {
+                                paths.add(Pair(extended, extendedSecondPath))
+                                secondPathAdded = true
+                            }
+                        }
+                    }
+                }
+                if (!secondPathAdded){
+                    paths.add(Pair(extended, null))
+                }
+            } else {
+                if (path.second != null) {
+                    val secondPath = path.second!!
+                    val shortestSecondPath = caves.findShortestPath(secondPath.last(), this.caves.getVertex(valve)!!)
+                    if (shortestSecondPath != null) {
+                        val extendedSecondPath = secondPath.traverse(shortestSecondPath)
+                        if (extendedSecondPath.minutes <= timeLimit) {
+                            paths.add(Pair(path.first, extendedSecondPath))
+                        }
+                    }
                 }
             }
         }
-        // path 2!!
+        return paths
+    }
 
-        return extendedPaths
+    private fun extend(pathTracker: PathTracker): List<PathTracker> {
+        val trackers = mutableListOf<PathTracker>()
+        val valvesWithPressure = pressuredValves.subtract(pathTracker.released())
+        for (valve in valvesWithPressure) {
+            trackers.addAll(extend(pathTracker.paths, valve, valvesWithPressure).map { pathTracker.copy(paths=it).release() })
+        }
+        return trackers
     }
 
     private fun traverseNextValve(caves: Graph<String, Valve>, paths: List<PathTracker>): List<PathTracker> {
@@ -167,18 +190,15 @@ class PressureLocator(lines: List<String>, private val timeLimit: Int) {
 }
 
 fun solvePart1(lines: List<String>): Int {
-    return PressureLocator(lines, 30).findOptimalPathPressure()
+    return PressureLocator(lines, false).findOptimalPathPressure()
 }
 
 fun solvePart2(lines: List<String>): Int {
-    return PressureLocator(lines, 26).findOptimalPathPressure()
+    return PressureLocator(lines, true).findOptimalPathPressure()
 }
 
 fun main() {
-    val lines = loadResource("day-16-input")?.path?.let {
-        File(it).readLines()
-    }!!
-
+    val lines = readLines("day-16-input")
     println("Result Part One: ${solvePart1(lines)}")
     println("Result Part Two: ${solvePart2(lines)}")
 }
