@@ -63,13 +63,13 @@ class Path(val vertices: List<CharVertex>) {
     }
 }
 
-fun findShortestPath(graph: TopologyGraph, start: CharVertex, end: CharVertex, max: Int): Path? {
-    return step(graph, mutableListOf(Path(listOf(start))), end, mutableSetOf(start), max)
+fun findShortestPath(graph: TopologyGraph, start: CharVertex, end: CharVertex): Path? {
+    return step(graph, mutableListOf(Path(listOf(start))), end, mutableSetOf(start))
 }
 
 typealias TopologyGraph = Graph<Int, Char>
 
-tailrec fun step(graph: TopologyGraph, paths: MutableList<Path>, end: CharVertex, visited: MutableSet<CharVertex>, max: Int): Path? {
+tailrec fun step(graph: TopologyGraph, paths: MutableList<Path>, end: CharVertex, visited: MutableSet<CharVertex>): Path? {
     val newPaths = mutableListOf<Path>()
     var destinationPath: Path? = null
     for (path in paths) {
@@ -85,7 +85,7 @@ tailrec fun step(graph: TopologyGraph, paths: MutableList<Path>, end: CharVertex
         }
     }
 
-    return if (destinationPath != null || newPaths.isEmpty()) destinationPath else step(graph, newPaths, end, visited, max)
+    return if (destinationPath != null || newPaths.isEmpty()) destinationPath else step(graph, newPaths, end, visited)
 }
 
 fun main() {
@@ -93,13 +93,13 @@ fun main() {
     val start = vertices['S']!!.first()
     val end = vertices['E']!!.first()
 
-    val result = findShortestPath(graph, start, end,-1)
+    val result = findShortestPath(graph, start, end)
     println("Part One Result: ${result!!.vertices.size-1}")
 
     val lowestStartingPoints = vertices['a']!!
     var max = -1
     for (startingPoint in lowestStartingPoints) {
-        val shortest = findShortestPath(graph, startingPoint, end, max)
+        val shortest = findShortestPath(graph, startingPoint, end)
         if (shortest != null) {
             val pathLength = shortest.vertices.size-1
             max = if (max == -1 || pathLength < max) pathLength else max
