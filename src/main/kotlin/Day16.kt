@@ -1,6 +1,7 @@
 import structures.Graph
 import structures.Path
 import structures.Vertex
+import utilities.loadResource
 import java.io.File
 
 data class Valve(val name: String, val pressure: Int, val adjacent: List<String>)

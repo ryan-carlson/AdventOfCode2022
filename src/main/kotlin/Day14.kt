@@ -1,3 +1,4 @@
+import utilities.loadResource
 import java.io.File
 
 enum class Fill {
@@ -143,9 +144,9 @@ class Cave(private val floor: Boolean, rocks: List<String>) {
 }
 
 fun main() {
-    val inputs = loadResource("day-14-input")?.path?.let {
+    val inputs = loadResource("day-14-input").path.let {
         File(it).readLines()
-    }!!
+    }
     val cave = Cave(floor=false, rocks=inputs)
     println("Part One Result: ${cave.releaseSand()}")
 
