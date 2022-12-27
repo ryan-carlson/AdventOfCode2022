@@ -111,26 +111,29 @@ class PressureLocator(lines: List<String>, private val elephant: Boolean) {
     private val valves = initValves(lines)
     private val caves = initGraph(valves)
     private val pressuredValves = valves.filter { valve -> valve.value.pressure > 0 }.map {it.key}.toList().toSet()
+    private val shortestPaths: MutableMap<String, Path<String, Valve>> = mutableMapOf()
+    private var totalPaths = 0
 
     fun findOptimalPathPressure(): Int {
-        val paths = traverseNextValve(
+        return traverseNextValve(
             caves,
-            listOf(newPathTracker(caves.getVertex("AA")!!, elephant, pressureRelease)),
-            1,
+            newPathTracker(caves.getVertex("AA")!!, elephant, pressureRelease),
+            0,
         )
-        val path = paths.reduce{acc, pathTracker ->
-            if (pathTracker.pressure() > acc.pressure())
-                pathTracker
-            else
-                acc
-        }
-        return path.pressure()
     }
 
     private fun extend(path: Pair<ValvePath, ValvePath?>, valve: String, remainingValves: Set<String>): List<Pair<ValvePath, ValvePath?>> {
         val paths = mutableListOf<Pair<ValvePath, ValvePath?>>()
-        val shortest = caves.findShortestPath(path.first.last(), this.caves.getVertex(valve)!!)
+        val start = path.first.last()
+        val end =  this.caves.getVertex(valve)!!
+        val pathKey = "${start.id}->${end.id}"
+        val shortest = if (shortestPaths.contains(pathKey)) {
+            shortestPaths[pathKey]
+        } else {
+            caves.findShortestPath(path.first.last(), this.caves.getVertex(valve)!!)
+        }
         if (shortest != null) {
+            shortestPaths[pathKey] = shortest
             val extended = path.first.traverse(shortest)
             if (extended.minutes <= timeLimit) {
                 var secondPathAdded = false
@@ -175,19 +178,25 @@ class PressureLocator(lines: List<String>, private val elephant: Boolean) {
         return trackers
     }
 
-    private fun traverseNextValve(caves: Graph<String, Valve>, paths: List<PathTracker>, count: Int): List<PathTracker> {
-        println("Traverse next count $count, trackers ${paths.size}")
-        val extendedPaths = mutableListOf<PathTracker>()
-        val completePaths = mutableListOf<PathTracker>()
-        for (path in paths) {
-            val extended = extend(path)
-            if (extended.isEmpty()) {
-                completePaths.add(path)
-            } else {
-                extendedPaths.addAll(extended)
+    private fun traverseNextValve(caves: Graph<String, Valve>, path: PathTracker, pressure: Int): Int {
+        val extended = extend(path)
+        var maxPressure = pressure
+        if (extended.isEmpty()) {
+            maxPressure = maxOf(path.pressure(), maxPressure)
+            totalPaths++
+            if (totalPaths % 100000 == 0) {
+                println("Paths: $totalPaths")
+            }
+        } else {
+            for (extendedPath in extended) {
+                maxPressure = maxOf(traverseNextValve(caves, extendedPath, maxPressure), maxPressure)
+                totalPaths++
+                if (totalPaths % 100000 == 0) {
+                    println("Paths: $totalPaths")
+                }
             }
         }
-        return if (extendedPaths.isNotEmpty()) traverseNextValve(caves, extendedPaths, count+1) + completePaths else completePaths
+        return maxPressure
     }
 }
 
