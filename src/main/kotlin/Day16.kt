@@ -116,6 +116,7 @@ class PressureLocator(lines: List<String>, private val elephant: Boolean) {
         val paths = traverseNextValve(
             caves,
             listOf(newPathTracker(caves.getVertex("AA")!!, elephant, pressureRelease)),
+            1,
         )
         val path = paths.reduce{acc, pathTracker ->
             if (pathTracker.pressure() > acc.pressure())
@@ -174,7 +175,8 @@ class PressureLocator(lines: List<String>, private val elephant: Boolean) {
         return trackers
     }
 
-    private fun traverseNextValve(caves: Graph<String, Valve>, paths: List<PathTracker>): List<PathTracker> {
+    private fun traverseNextValve(caves: Graph<String, Valve>, paths: List<PathTracker>, count: Int): List<PathTracker> {
+        println("Traverse next count $count, trackers ${paths.size}")
         val extendedPaths = mutableListOf<PathTracker>()
         val completePaths = mutableListOf<PathTracker>()
         for (path in paths) {
@@ -185,7 +187,7 @@ class PressureLocator(lines: List<String>, private val elephant: Boolean) {
                 extendedPaths.addAll(extended)
             }
         }
-        return if (extendedPaths.isNotEmpty()) traverseNextValve(caves, extendedPaths) + completePaths else completePaths
+        return if (extendedPaths.isNotEmpty()) traverseNextValve(caves, extendedPaths, count+1) + completePaths else completePaths
     }
 }
 
