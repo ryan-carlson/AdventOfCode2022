@@ -1,11 +1,15 @@
 import utilities.readLines
-import java.util.*
 
 enum class CaveFill {
     EMPTY, ROCK
 }
 
 data class Coordinates(val x: Int, val y: Int)
+
+data class Snapshot(val rockCount: Long, val maxHeight: Long)
+
+// current y coordinate, block type, location in jet
+data class CycleSnapshotId(val y: Int, val blockType: Long, val jetLocation: Int)
 
 class LineRock(override var coordinates: Coordinates): Rock(
     coordinates,
@@ -98,9 +102,12 @@ sealed class Rock(open var coordinates: Coordinates, private val locs: List<Coor
 class VerticalCave(private val jets: String, private val debug: Boolean) {
 
     private val width = 7
-    private val cave = Stack<Array<CaveFill>>()
+    private var cave: MutableList<Array<CaveFill>> = mutableListOf()
     private var jetsCurrent = jets
-    var maxHeight = 0
+    private var maxHeight = 0
+    private var compactedHeight = 0L
+    private var rockCount = 1L
+    private var uniqueCompactionsMap: MutableMap<CycleSnapshotId, Snapshot> = mutableMapOf()
 
     init {
         for (i in 1.. 3) {
@@ -109,32 +116,37 @@ class VerticalCave(private val jets: String, private val debug: Boolean) {
     }
 
     private fun addEmptyRow() {
-        cave.push(createRow())
+        cave.add(createRow())
     }
 
     private fun createRow(): Array<CaveFill> {
         return Array(width) { CaveFill.EMPTY }
     }
 
-    fun dropRocks(count: Long): Int {
+    private fun rowFilled(y: Int): Boolean {
+        return cave[y].none { it == CaveFill.EMPTY }
+    }
+
+    fun dropRocks(count: Long): Long {
         var maxHeight = 0
-        for (i in 1..count) {
+        while (rockCount <= count) {
             val start = Coordinates(2, maxHeight+3)
-            when (i % 5) {
-                1L ->  maxHeight = dropRock(LineRock(start))
-                2L ->  maxHeight = dropRock(PlusRock(start))
-                3L ->  maxHeight = dropRock(HockeyStickRock(start))
-                4L ->  maxHeight = dropRock(VerticalLineRock(start))
-                0L ->  maxHeight = dropRock(SquareRock(start))
+            when (rockCount % 5) {
+                1L ->  maxHeight = dropRock(LineRock(start), count)
+                2L ->  maxHeight = dropRock(PlusRock(start), count)
+                3L ->  maxHeight = dropRock(HockeyStickRock(start), count)
+                4L ->  maxHeight = dropRock(VerticalLineRock(start), count)
+                0L ->  maxHeight = dropRock(SquareRock(start), count)
             }
+            rockCount++
         }
         if (debug) {
             print()
         }
-        return maxHeight
+        return maxHeight + compactedHeight
     }
 
-    private fun dropRock(rock: Rock): Int {
+    private fun dropRock(rock: Rock, count: Long): Int {
         for (location in rock.getLocations()) {
             for (i in cave.size..location.y) {
                 addEmptyRow()
@@ -145,16 +157,38 @@ class VerticalCave(private val jets: String, private val debug: Boolean) {
             jet(rock)
             settled = fall(rock)
         }
-        val rowsUpdated = mutableSetOf<Int>()
+        val rows = mutableSetOf<Int>()
         for (location in rock.getLocations()) {
-            rowsUpdated.add(location.y)
+            rows.add(location.y)
             maxHeight = maxOf(location.y+1, maxHeight)
             cave[location.y][location.x] = CaveFill.ROCK
         }
-        for (y in rowsUpdated) {
-            // Check if full and adjust cave
+        val updatedRowsSorted = rows.toMutableList()
+        updatedRowsSorted.sortDescending()
+        for (y in updatedRowsSorted) {
+            if (rowFilled(y)) {
+                compactCave(y, count)
+                break
+            }
         }
         return maxHeight
+    }
+
+    private fun compactCave(y: Int, count: Long) {
+        val rowsToCompact = y+1
+        maxHeight -= rowsToCompact
+        compactedHeight += rowsToCompact
+        cave = cave.subList(rowsToCompact, cave.size)
+
+        val id = CycleSnapshotId(y, rockCount % 5, jetsCurrent.length)
+        if (uniqueCompactionsMap.contains(id)) {
+            val cycleCount = rockCount-uniqueCompactionsMap[id]!!.rockCount
+            val cycleHeight = maxHeight+compactedHeight-uniqueCompactionsMap[id]!!.maxHeight
+            val remainingFullCycles = (count-rockCount)/cycleCount
+            rockCount += remainingFullCycles*cycleCount
+            compactedHeight += remainingFullCycles*cycleHeight
+        }
+        uniqueCompactionsMap[id] = Snapshot(rockCount, maxHeight.toLong()+compactedHeight)
     }
 
     private fun fall(rock: Rock): Boolean {
@@ -231,12 +265,12 @@ class VerticalCave(private val jets: String, private val debug: Boolean) {
     }
 }
 
-fun solveDay17Part1(lines: List<String>, rockCount: Long): Int {
-    return VerticalCave(lines[0], true).dropRocks(rockCount)
+fun solveDay17Part1(lines: List<String>, rockCount: Long): Long {
+    return VerticalCave(lines[0], false).dropRocks(rockCount)
 }
 
-fun solveDay17Part2(lines: List<String>, rockCount: Long): Int {
-    return VerticalCave(lines[0], true).dropRocks(rockCount)
+fun solveDay17Part2(lines: List<String>, rockCount: Long): Long {
+    return VerticalCave(lines[0], false).dropRocks(rockCount)
 }
 
 fun main() {
