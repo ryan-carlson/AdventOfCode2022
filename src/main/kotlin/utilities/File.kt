@@ -9,7 +9,7 @@ fun loadResource(path: String): URL {
 }
 
 fun readLines(path: String): List<String> {
-    return loadResource("day-16-input").path.let {
+    return loadResource(path).path.let {
         File(it).readLines()
     }
 }
